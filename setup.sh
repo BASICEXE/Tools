@@ -1,0 +1,176 @@
+#!/bin/sh
+
+# 接続先のサーバー情報
+server=lolipop
+
+# テンプレートを置いておくディレクトリ
+templateDir=git
+openDir=test
+secretDir=test
+wpDir=wp
+
+
+temp_file=$(mktemp)
+temp_dir=$(mktemp -d)
+trap "
+rm $temp_file
+rm -rf $temp_dir
+" 0
+
+#==================================
+# functions
+#==================================
+
+ls_dir(){
+
+  #サーバー側のディレクトリを見る
+  echo "--------------------------"
+  ssh $server command "cd ${1:-$secretDir};ls"
+  echo "--------------------------"
+
+}
+
+
+gitcall () {
+
+  # template set up
+  git clone ssh://$server/~/${templateDir}/$1 $2
+  cd ./$2/
+  rm -rf .git
+  git init
+  git add .
+  git commit -m "First commit"
+
+}
+
+
+rm_site(){
+
+  # サーバーにあるRepositoryを削除
+  ssh $server command "
+  cd ~/web/${openDir}/;
+  rm -rf $1;
+  cd ~/${secretDir}/;
+  rm -rf $1"
+  echo "${1}を削除しました。"
+
+}
+
+repository_setup(){
+
+  # サーバーにRepositoryを追加
+  ssh $server command "
+  cd ~/${secretDir};
+  mkdir ${1};
+  cd ${1};
+  git init --bare --shared;"
+  ssh $server command "cd ~/${secretDir}/${1}/hooks;
+cat << 'EOF' > post-receive
+#/bin/bash
+
+cd ~/web/${openDir}/${1}
+git --git-dir=,git pull origin develop:develop
+
+EOF"
+  ssh $server command "cd ~/${secretDir}/${1}/hooks;
+  ls -la;
+  chmod 744 post-receive;
+  ls -la;
+  "
+
+  # サーバーの公開領域にRepositoryを追加
+  ssh $server command "
+  cd ~/web/${openDir};
+  mkdir ${1};
+  cd ${1};
+  git init;
+  git remote add origin ~/${secretdir}/${1}
+  "
+
+}
+
+repository_add(){
+
+  # リモートリポジトリtestを追加
+  git remote add test ssh://${server}/~/${secretdir}/$1
+  echo "リモートリポジトリtestを追加しました。"
+
+}
+
+wp_cil_install(){
+  ssh $server command "
+  mkdir bin;
+  "
+  cd $temp_dir
+
+cat <<'_EOF_' > .bash_profile
+export PATH="~/bin:$PATH"
+_EOF_
+
+  scp ./.bash_profile $server:~/
+
+  ssh $server command "
+  source .bash_profile;
+  curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar;
+  php wp-cli.phar --info;
+  chmod +x wp-cli.phar;
+  mv wp-cli.phar ~/bin/wp;
+  wp --version
+  "
+}
+
+help(){
+  echo "
+  リポジトリの設定などセットアップを行うシェルスクリプトです。
+  どのようなセットアップを行うか選択してください。
+
+  ［メニュー］
+
+  ---サーバーセットアップ
+
+  wp-cli    install : wp-cli
+
+  wordpress set up
+  site      set up  : test
+  site      remove  : remove
+
+  ---ローカルセットアップ
+
+  template  set up  : call
+  "
+}
+
+#==================================
+# 判定・処理
+#==================================
+case "$1" in
+  "call")
+    ls_dir $templateDir
+    read -p "Please template file name: " template
+    read -p "Please input file name: " fileName
+    gitcall $template $fileName
+    ;;
+  "remove")
+    ls_dir
+    read -p "Please delete template file : " template
+    rm_site $template
+    ls_dir
+    ;;
+  "test")
+    ls_dir
+    read -p "Please delete template file : " template
+    repository_setup $template
+    ;;
+  "remote")
+    repository_add
+    ;;
+  "wp")
+
+    ;;
+  "wp-cli")
+    wp_cil_install
+    ;;
+  *)
+    help
+esac
+

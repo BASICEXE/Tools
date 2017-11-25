@@ -1,5 +1,7 @@
 #!/bin/sh
 
+
+
 if [ -n "$2" ]
 then
 git clone ssh://lolipop/~/git/$1.git $2
