@@ -24,12 +24,16 @@ rm -rf $temp_dir
 ls_dir(){
 
   #サーバー側のディレクトリを見る
-  echo "--------------------------"
+  echo "
+  ${1:-$secretDir}ディレクトリ
+  ----------------------------
+  "
   ssh $server command "cd ${1:-$secretDir};ls"
-  echo "--------------------------"
+  echo "
+  ----------------------------
+  "
 
 }
-
 
 gitcall () {
 
@@ -73,9 +77,7 @@ git --git-dir=,git pull origin develop:develop
 
 EOF"
   ssh $server command "cd ~/${secretDir}/${1}/hooks;
-  ls -la;
   chmod 744 post-receive;
-  ls -la;
   "
 
   # サーバーの公開領域にRepositoryを追加
@@ -86,6 +88,8 @@ EOF"
   git init;
   git remote add origin ~/${secretdir}/${1}
   "
+  echo "${1}を設定しました。
+  url : http:basicexe.main.jp/test/${1}/"
 
 }
 
@@ -93,7 +97,7 @@ repository_add(){
 
   # リモートリポジトリtestを追加
   git remote add test ssh://${server}/~/${secretdir}/$1
-  echo "リモートリポジトリtestを追加しました。"
+  echo "リポジトリをtestとして追加しました。"
 
 }
 
@@ -117,6 +121,7 @@ _EOF_
   mv wp-cli.phar ~/bin/wp;
   wp --version
   "
+  echo "wp cliをインストールしました。"
 }
 
 help(){
@@ -137,7 +142,10 @@ help(){
   ---ローカルセットアップ
 
   template  set up  : call
+  add   repository  : remote
+  template add repository  : calladd
   "
+  ls_dir
 }
 
 #==================================
@@ -149,6 +157,13 @@ case "$1" in
     read -p "Please template file name: " template
     read -p "Please input file name: " fileName
     gitcall $template $fileName
+    ;;
+  "calladd")
+    ls_dir $templateDir
+    read -p "Please template file name: " template
+    read -p "Please input file name: " fileName
+    gitcall $template $fileName
+    repository_add $fileName
     ;;
   "remove")
     ls_dir
