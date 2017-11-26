@@ -10,16 +10,22 @@ secretDir=test
 wpDir=wp
 
 
-temp_file=$(mktemp)
-temp_dir=$(mktemp -d)
-trap "
-rm $temp_file
-rm -rf $temp_dir
-" 0
 
 #==================================
 # functions
 #==================================
+
+temp(){
+
+  #一時的なフォルダを作成する
+  temp_file=$(mktemp)
+  temp_dir=$(mktemp -d)
+  trap "
+  rm $temp_file
+  rm -rf $temp_dir
+  " 0
+
+}
 
 ls_dir(){
 
@@ -105,6 +111,7 @@ wp_cil_install(){
   ssh $server command "
   mkdir bin;
   "
+  temp
   cd $temp_dir
 
 cat <<'_EOF_' > .bash_profile
