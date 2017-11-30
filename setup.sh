@@ -79,7 +79,7 @@ cat << 'EOF' > post-receive
 #/bin/bash
 
 cd ~/web/${openDir}/${1}
-git --git-dir=,git pull origin develop:develop
+git --git-dir=.git pull origin develop:develop
 
 EOF"
   ssh $server command "cd ~/${secretDir}/${1}/hooks;
@@ -184,7 +184,9 @@ case "$1" in
     repository_setup $template
     ;;
   "remote")
-    repository_add
+    ls_dir
+    read -p "Please add template file : " template
+    repository_add $template
     ;;
   "wp")
 
