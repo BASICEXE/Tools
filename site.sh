@@ -1,0 +1,159 @@
+#!/bin/sh
+
+# 接続先のサーバー情報
+server=lolipop
+
+# テンプレートを置いておくディレクトリ
+templateDir=git
+templateName=seed
+openDir=test
+secretDir=test
+
+
+#==================================
+# functions
+#==================================
+
+temp(){
+
+  #一時的なフォルダを作成する
+  temp_file=$(mktemp)
+  temp_dir=$(mktemp -d)
+  trap "
+  rm $temp_file
+  rm -rf $temp_dir
+  " 0
+
+}
+
+ls_dir(){
+
+  #サーバー側のディレクトリを見る
+  echo "
+  ${1:-$secretDir}ディレクトリ
+  ----------------------------
+  "
+  ssh $server command "cd ${1:-$secretDir};ls"
+  echo "
+  ----------------------------
+  "
+
+}
+
+gitcall () {
+
+  # template set up
+  git clone ssh://$server/~/${templateDir}/${templateName} $1
+  cd ./$1/
+  rm -rf .git
+  git init
+  git add .
+  git commit -m "First commit"
+
+}
+
+
+rm_site(){
+
+  # サーバーにあるRepositoryを削除
+  ssh $server command "
+  cd ~/web/${openDir}/;
+  rm -rf $1;
+  cd ~/${secretDir}/;
+  rm -rf $1"
+  echo "${1}を削除しました。"
+
+}
+
+repository_setup(){
+
+  # サーバーにRepositoryを追加
+  ssh $server command "
+  cd ~/${secretDir};
+  mkdir ${1};
+  cd ${1};
+  git init --bare --shared;"
+  ssh $server command "cd ~/${secretDir}/${1}/hooks;
+cat << 'EOF' > post-receive
+#!/bin/bash
+
+cd ~/web/${openDir}/${1}
+git --git-dir=.git pull origin develop:develop
+
+EOF"
+  ssh $server command "cd ~/${secretDir}/${1}/hooks;
+  chmod 775 post-receive;
+  "
+
+  # サーバーの公開領域にRepositoryを追加
+  ssh $server command "
+  cd ~/web/${openDir};
+  mkdir ${1};
+  cd ${1};
+  git init;
+  git remote add origin ~/${secretDir}/${1}
+  "
+  echo "${1}を設定しました。
+  url : http:basicexe.main.jp/${secretDir}/${1}/"
+
+}
+
+repository_add(){
+
+  # リモートリポジトリtestを追加
+  git remote add test ssh://${server}/~/${secretDir}/$1
+  echo "リポジトリをtestとして追加しました。"
+
+}
+
+
+
+help(){
+  echo "
+  リポジトリの設定などセットアップを行うシェルスクリプトです。
+  どのようなセットアップを行うか引数を入力してください。
+
+  ［メニュー］
+
+  ---サーバーセットアップ
+
+  site      set up  : setup
+  site      remove  : rm
+
+  ---ローカルセットアップ
+
+  template  set up  : call
+  set up all        : all
+  "
+  ls_dir
+}
+
+#==================================
+# 判定・処理
+#==================================
+case "$1" in
+  "call")
+    read -p "Please input file name: " fileName
+    gitcall $fileName
+    ;;
+  "setup")
+    ls_dir
+    read -p "Please open template file : " template
+    repository_setup $template
+    ;;
+  "all")
+    read -p "Please input file name: " fileName
+    gitcall $fileName
+    repository_setup $fileName
+    repository_add $fileName
+    ;;
+  "rm")
+    ls_dir
+    read -p "Please delete template file : " template
+    rm_site $template
+    ls_dir
+    ;;
+  *)
+    help
+esac
+
