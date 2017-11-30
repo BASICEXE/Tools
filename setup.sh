@@ -76,14 +76,14 @@ repository_setup(){
   git init --bare --shared;"
   ssh $server command "cd ~/${secretDir}/${1}/hooks;
 cat << 'EOF' > post-receive
-#/bin/bash
+#!/bin/bash
 
 cd ~/web/${openDir}/${1}
 git --git-dir=.git pull origin develop:develop
 
 EOF"
   ssh $server command "cd ~/${secretDir}/${1}/hooks;
-  chmod 744 post-receive;
+  chmod 775 post-receive;
   "
 
   # サーバーの公開領域にRepositoryを追加
@@ -92,17 +92,17 @@ EOF"
   mkdir ${1};
   cd ${1};
   git init;
-  git remote add origin ~/${secretdir}/${1}
+  git remote add origin ~/${secretDir}/${1}
   "
   echo "${1}を設定しました。
-  url : http:basicexe.main.jp/test/${1}/"
+  url : http:basicexe.main.jp/${secretDir}/${1}/"
 
 }
 
 repository_add(){
 
   # リモートリポジトリtestを追加
-  git remote add test ssh://${server}/~/${secretdir}/$1
+  git remote add test ssh://${server}/~/${secretDir}/$1
   echo "リポジトリをtestとして追加しました。"
 
 }
@@ -143,7 +143,7 @@ help(){
   wp-cli    install : wp-cli
 
   wordpress set up
-  site      set up  : test
+  site      set up  : up
   site      remove  : remove
 
   ---ローカルセットアップ
@@ -178,7 +178,7 @@ case "$1" in
     rm_site $template
     ls_dir
     ;;
-  "test")
+  "up")
     ls_dir
     read -p "Please delete template file : " template
     repository_setup $template
