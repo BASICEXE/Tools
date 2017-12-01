@@ -5,8 +5,6 @@ server=lolipop
 
 # テンプレートを置いておくディレクトリ
 templateDir=git
-openDir=test
-secretDir=test
 wpDir=wp
 
 
@@ -34,7 +32,7 @@ ls_dir(){
   ${1:-$secretDir}ディレクトリ
   ----------------------------
   "
-  ssh $server command "cd ${1:-$secretDir};ls"
+  ssh $server command "cd ${1:-$wpDir};ls"
   echo "
   ----------------------------
   "
@@ -44,8 +42,8 @@ ls_dir(){
 gitcall () {
 
   # template set up
-  git clone ssh://$server/~/${templateDir}/$1 $2
-  cd ./$2/
+  git clone ssh://$server/~/${templateDir}/wp_seed $1
+  cd ./$1/
   rm -rf .git
   git init
   git add .
