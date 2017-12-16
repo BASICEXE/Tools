@@ -1,13 +1,23 @@
 #!/bin/sh
 
-# 接続先のサーバー情報
-server=lolipop
 
+
+# 設定ファイルに以下のように書き込んでください
+# 接続先のサーバー情報
+# server=hoge
+#  
 # テンプレートを置いておくディレクトリ
-templateDir=template
-templateName=seed
-openDir=test
-secretDir=test
+# templateDir=hoge
+# templateName=hoge
+# openDir=hoge
+# secretDir=hoge
+
+
+
+
+# 設定ファイルの読み込み
+. ./setting/site_conf
+
 
 
 #==================================
@@ -115,15 +125,11 @@ help(){
 
   ［メニュー］
 
-  ---サーバーセットアップ
+  リモートに公開します。　　　　　　　　　　　　  : rm
+  テンプレートを呼び出します。　　　　　　　　　  : call
+  テンプレートを呼び出してリモートに公開します。  : setup
+  リモートを削除します。　　　　　　　　　        : all
 
-  site      set up  : setup
-  site      remove  : rm
-
-  ---ローカルセットアップ
-
-  template  set up  : call
-  set up all        : all
   "
   ls_dir
 }
@@ -133,23 +139,24 @@ help(){
 #==================================
 case "$1" in
   "call")
-    read -p "Please input file name: " fileName
+    read -p "Please setup name: " fileName
     gitcall $fileName
     ;;
-  "setup")
+  "upload")
     ls_dir
-    read -p "Please open template file : " template
-    repository_setup $template
+    read -p "Please open file name : " fileName
+    repository_setup $fileName
+    repository_add $fileName
     ;;
-  "all")
-    read -p "Please input file name: " fileName
+  "setup")
+    read -p "Please setup file name: " fileName
     gitcall $fileName
     repository_setup $fileName
     repository_add $fileName
     ;;
-  "rm")
+  "remove")
     ls_dir
-    read -p "Please delete template file : " template
+    read -p "Please delete file neme : " template
     rm_site $template
     ls_dir
     ;;
