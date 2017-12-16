@@ -4,7 +4,7 @@
 server=lolipop
 
 # テンプレートを置いておくディレクトリ
-templateDir=git
+templateDir=template
 templateName=seed
 openDir=test
 secretDir=test
