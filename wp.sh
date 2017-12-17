@@ -45,7 +45,6 @@ temp(){
 }
 
 ls_dir(){
-
   #サーバー側のディレクトリを見る
   echo "
   ${1:-$wp_secretDir}ディレクトリ
@@ -55,7 +54,6 @@ ls_dir(){
   echo "
   ----------------------------
   "
-
 }
 
 yn(){
@@ -64,20 +62,18 @@ yn(){
     [Yy] ) break;;
     * ) echo "実行をキャンセルしました。"; exit ;;
   esac
-
 }
 
 loop(){
   # ファイル一覧を取得して複数回処理を繰り替えす
-files=$(ssh lolipop command "ls ~/template/")
-for file in ${files}; do
-  echo "${file}"
-done
+  files=$(ssh lolipop command "ls ~/template/")
+  for file in ${files}; do
+    echo "${file}"
+  done
 }
 
 
 gitcall () {
-
   # template set up
   git clone ssh://$server/~/${templateDir}/${templateName} $1
   cd ./$1/
@@ -85,12 +81,10 @@ gitcall () {
   git init
   git add .
   git commit -m "First commit"
-
 }
 
 
 rm_site(){
-
   # サーバーにあるRepositoryを削除
   ssh $server command "
   cd ~/web/${wp_openDir}/;
@@ -98,12 +92,10 @@ rm_site(){
   cd ~/${wp_secretDir}/;
   rm -rf $1"
   echo "${1}を削除しました。"
-
 }
 
 
 repository_setup(){
-
   # サーバーにRepositoryを追加
   ssh $server command "
   cd ~/${wp_secretDir};
@@ -111,13 +103,13 @@ repository_setup(){
   cd ${1};
   git init --bare --shared;"
   ssh $server command "cd ~/${wp_secretDir}/${1}/hooks;
-cat << 'EOF' > post-receive
-#!/bin/bash
+  cat << 'EOF' > post-receive
+  #!/bin/bash
 
-cd ~/web/${wp_openDir}/${1}
-git --git-dir=.git pull origin develop:develop
+  cd ~/web/${wp_openDir}/${1}
+  git --git-dir=.git pull origin develop:develop
 
-EOF"
+  EOF"
   ssh $server command "cd ~/${wp_secretDir}/${1}/hooks;
   chmod 775 post-receive;
   "
@@ -132,15 +124,12 @@ EOF"
   "
   echo "${1}を設定しました。
   url : http:basicexe.main.jp/${wp_secretDir}/${1}/"
-
 }
 
 repository_add(){
-
   # リモートリポジトリtestを追加
   git remote add test ssh://${server}/~/${wp_secretDir}/$1
   echo "リポジトリをtestとして追加しました。"
-
 }
 
 install(){
@@ -155,18 +144,18 @@ install(){
 }
 
 update(){
-files=$(ssh lolipop command "ls ~/web/${wp_openDir}/")
-for file in ${files}; do
-  ssh $server command "
-  cd ~/web/${wp_openDir}/${files}/;
-  ~/bin/wp core update&&
-  ~/bin/wp core update-db;
-  ~/bin/wp plugin update --all &&
-  ~/bin/wp theme update --all &&
-  ~/bin/wp core language update;
-  ~/bin/wp core verify-checksums
-  "
-done
+  files=$(ssh lolipop command "ls ~/web/${wp_openDir}/")
+  for file in ${files}; do
+    ssh $server command "
+    cd ~/web/${wp_openDir}/${files}/;
+    ~/bin/wp core update&&
+      ~/bin/wp core update-db;
+    ~/bin/wp plugin update --all &&
+      ~/bin/wp theme update --all &&
+      ~/bin/wp core language update;
+    ~/bin/wp core verify-checksums
+    "
+  done
 }
 
 wp_cil_install(){
@@ -176,22 +165,46 @@ wp_cil_install(){
   temp
   cd $temp_dir
 
-cat <<'_EOF_' > .bash_profile
+  cat <<'_EOF_' > .bash_profile
 export PATH="~/bin:$PATH"
 _EOF_
 
-  scp ./.bash_profile $server:~/
+scp ./.bash_profile $server:~/
 
-  ssh $server command "
-  source .bash_profile;
-  curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar;
-  php wp-cli.phar --info;
-  chmod +x wp-cli.phar;
-  mv wp-cli.phar ~/bin/wp;
-  wp --version
-  "
-  echo "wp cliをインストールしました。"
+ssh $server command "
+source .bash_profile;
+curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar;
+php wp-cli.phar --info;
+chmod +x wp-cli.phar;
+mv wp-cli.phar ~/bin/wp;
+wp --version
+"
+echo "wp cliをインストールしました。"
 }
+
+
+docker_look(){
+  docker-compose ps
+}
+
+
+docker_setup(){
+  docker exec -it ${1} bash -c "sh /tmp/provisioning.sh"
+}
+
+docker_backup(){
+  # データベースのバックアップを作成する
+  docker exec -it ${1:-$wordpress} sh -c 'mysqldump wordpress -u wordpress -pwordpress 2> /dev/null' > ./wp_data/db_data/mysql.dump.sql
+  zip -rp uploads.zip ./wp_data/uploads/
+}
+
+docker_login(){
+  docker exec -it ${1} bash
+}
+
+
+
+
 
 help(){
   echo "
@@ -253,6 +266,32 @@ case "$1" in
     echo "wp-cliをインストールしますか？"
     yn
     wp_cil_install
+    ;;
+  "docker-up")
+    docker-compose up -d
+    ;;
+  "docker-stop")
+    docker-compose stop
+    ;;
+  "docker-rm")
+    docker-compose down -v
+    ;;
+  "docker-setup")
+    look
+    docker-compose up -d &&
+    read -p "Please docker mane: " docker_name
+    setup $docker_name
+    ;;
+  "docker-backup")
+    look
+    docker-compose up -d &&
+    read -p "Please docker mane: " docker_name
+    backup $docker_name
+    ;;
+  "docker-login")
+    look
+    read -p "Please docker mane: " docker_name
+    login $docker_name
     ;;
   *)
     help
