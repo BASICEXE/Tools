@@ -16,7 +16,7 @@
 
 
 # 設定ファイルの読み込み
-. ./setting/site_conf
+. ~/.tools/setting/site_conf
 
 
 
