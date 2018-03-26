@@ -7,9 +7,6 @@
 # server=hoge
 # 
 # テンプレートを置いておくディレクトリ
-# templateDir=template
-# templateName=hoge
-# wp_secretDir=hoge
 # wp_openDir=hoge
 # 
 # db_host=hoge
@@ -47,10 +44,10 @@ temp(){
 ls_dir(){
   #サーバー側のディレクトリを見る
   echo "
-  ${1:-$wp_secretDir}ディレクトリ
+  ${1:-$wp_openDir}ディレクトリ
   ----------------------------
   "
-  ssh $server command "cd ${1:-$wp_secretDir};ls"
+  ssh $server command "cd ${1:-$wp_openDir};ls"
   echo "
   ----------------------------
   "
@@ -64,74 +61,6 @@ yn(){
   esac
 }
 
-loop(){
-  # ファイル一覧を取得して複数回処理を繰り替えす
-  files=$(ssh lolipop command "ls ~/template/")
-  for file in ${files}; do
-    echo "${file}"
-  done
-}
-
-
-gitcall () {
-  # template set up
-  git clone ssh://$server/~/${templateDir}/${templateName} $1
-  cd ./$1/
-  rm -rf .git
-  git init
-  git add .
-  git commit -m "First commit"
-}
-
-
-rm_site(){
-  # サーバーにあるRepositoryを削除
-  ssh $server command "
-  cd ~/web/${wp_openDir}/;
-  rm -rf $1;
-  cd ~/${wp_secretDir}/;
-  rm -rf $1"
-  echo "${1}を削除しました。"
-}
-
-
-repository_setup(){
-  # サーバーにRepositoryを追加
-  ssh $server command "
-  cd ~/${wp_secretDir};
-  mkdir ${1};
-  cd ${1};
-  git init --bare --shared;"
-  ssh $server command "cd ~/${wp_secretDir}/${1}/hooks;
-  cat << 'EOF' > post-receive
-  #!/bin/bash
-
-  cd ~/web/${wp_openDir}/${1}
-  git --git-dir=.git pull origin develop:develop
-
-  EOF"
-  ssh $server command "cd ~/${wp_secretDir}/${1}/hooks;
-  chmod 775 post-receive;
-  "
-
-  # サーバーの公開領域にRepositoryを追加
-  ssh $server command "
-  cd ~/web/${wp_openDir};
-  mkdir ${1};
-  cd ${1};
-  git init;
-  git remote add origin ~/${wp_secretDir}/${1}
-  "
-  echo "${1}を設定しました。
-  url : http:basicexe.main.jp/${wp_secretDir}/${1}/"
-}
-
-repository_add(){
-  # リモートリポジトリtestを追加
-  git remote add test ssh://${server}/~/${wp_secretDir}/$1
-  echo "リポジトリをtestとして追加しました。"
-}
-
 install(){
   ssh $server command "
   cd ~/web/${wp_openDir}/;
@@ -139,7 +68,19 @@ install(){
   cd ~/web/${wp_openDir}/$1;
   ~/bin/wp core download --locale=ja;
   ~/bin/wp core config --dbname=${db_name} --dbuser=${db_user} --dbpass=${db_pass} --dbhost=${db_host} --dbprefix=${1}_ ;
-  ~/bin/wp core install --url=${wp_url}${wp_openDir}/${1} --title=${wp_title} --admin_user=${wp_user} --admin_password=${wp_pass} --admin_email=${wp_email}
+  ~/bin/wp core install --url=${wp_url}${wp_openDir}/${1} --title=${wp_title} --admin_user=${wp_user} --admin_password=${wp_pass} --admin_email=${wp_email};
+  ~/bin/wp plugin delete hello;
+  ~/bin/wp plugin install all-in-one-wp-migration;
+  ~/bin/wp plugin activate all-in-one-wp-migration
+  "
+}
+
+remove(){
+  ssh $server command "
+  cd ~/web/${wp_openDir}/$1;
+  ~/bin/wp db drop --yes;
+  cd ../;
+  rm -r /$1;
   "
 }
 
@@ -183,49 +124,20 @@ echo "wp cliをインストールしました。"
 }
 
 
-docker_look(){
-  docker-compose ps
-}
-
-
-docker_setup(){
-  docker exec -it ${1} bash -c "sh /tmp/provisioning.sh"
-}
-
-docker_backup(){
-  # データベースのバックアップを作成する
-  docker exec -it ${1:-$wordpress} sh -c 'mysqldump wordpress -u wordpress -pwordpress 2> /dev/null' > ./wp_data/db_data/mysql.dump.sql
-  zip -rp uploads.zip ./wp_data/uploads/
-}
-
-docker_login(){
-  docker exec -it ${1} bash
-}
-
-
-
-
 
 help(){
   echo "
-  リポジトリの設定などセットアップを行うシェルスクリプトです。
-  どのようなセットアップを行うか選択してください。
+  wordpressのテスト環境を自動化するシェルスクリプトです。
+  なにを行うか選択してください。
 
   ［メニュー］
 
-  ---サーバーセットアップ
+  wp-cli    install    : wp-cli
 
-  wp-cli    install : wp-cli
+  wordpress install    : install
+  wordpress remove     : remove
+  wordpress all update : update
 
-  wordpress set up
-  site      set up  : up
-  site      remove  : remove
-
-  ---ローカルセットアップ
-
-  template  set up  : call
-  add   repository  : remote
-  template add repository  : calladd
   "
   ls_dir
 }
@@ -234,27 +146,12 @@ help(){
 # 判定・処理
 #==================================
 case "$1" in
-  "call")
-    ls_dir
-    read -p "Please file name: " fileName
-    echo "${fileName}としてセットアップしますか？"
-    yn
-    gitcall $fileName
-    ;;
   "remove")
     ls_dir
-    read -p "Please delete template file : " template
+    read -p "Please delete site name : " template
     echo "本当に${template}を削除しますか？"
     yn
-    rm_site $template
-    ;;
-  "setup")
-    ls_dir
-    read -p "Please delete template file : " template
-    echo "${template}としてリモートを設定しgitにtestを追加します。"
-    yn
-    repository_setup $template
-    repository_add $template
+    remove $template
     ;;
   "install")
     read -p "Please install site : " template
@@ -262,36 +159,16 @@ case "$1" in
     yn
     install ${template}
     ;;
+  "update")
+    echo "すべてのwordpressをアップデートしますか？"
+    yn
+    update
+    ;;
+
   "wp-cli")
     echo "wp-cliをインストールしますか？"
     yn
     wp_cil_install
-    ;;
-  "docker-up")
-    docker-compose up -d
-    ;;
-  "docker-stop")
-    docker-compose stop
-    ;;
-  "docker-rm")
-    docker-compose down -v
-    ;;
-  "docker-setup")
-    look
-    docker-compose up -d &&
-    read -p "Please docker mane: " docker_name
-    setup $docker_name
-    ;;
-  "docker-backup")
-    look
-    docker-compose up -d &&
-    read -p "Please docker mane: " docker_name
-    backup $docker_name
-    ;;
-  "docker-login")
-    look
-    read -p "Please docker mane: " docker_name
-    login $docker_name
     ;;
   *)
     help
