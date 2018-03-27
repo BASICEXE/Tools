@@ -47,7 +47,7 @@ ls_dir(){
   ${1:-$wp_openDir}ディレクトリ
   ----------------------------
   "
-  ssh $server command "cd ${1:-$wp_openDir};ls"
+  ssh $server command "cd ~/web/${1:-$wp_openDir};ls"
   echo "
   ----------------------------
   "
