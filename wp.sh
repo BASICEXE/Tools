@@ -61,14 +61,15 @@ yn(){
   esac
 }
 
+
 install(){
   ssh $server command "
   cd ~/web/${wp_openDir}/;
   mkdir $1;
-  cd ~/web/${wp_openDir}/$1;
+  cd $1;
   ~/bin/wp core download --locale=ja;
   ~/bin/wp core config --dbname=${db_name} --dbuser=${db_user} --dbpass=${db_pass} --dbhost=${db_host} --dbprefix=${1}_ ;
-  ~/bin/wp core install --url=${wp_url}${wp_openDir}/${1} --title=${wp_title} --admin_user=${wp_user} --admin_password=${wp_pass} --admin_email=${wp_email};
+  ~/bin/wp core install --url=${wp_url}/${1}/ --title=${wp_title} --admin_user=${wp_user} --admin_password=${wp_pass} --admin_email=${wp_email};
   ~/bin/wp plugin delete hello;
   ~/bin/wp plugin install all-in-one-wp-migration;
   ~/bin/wp plugin activate all-in-one-wp-migration
@@ -77,10 +78,8 @@ install(){
 
 remove(){
   ssh $server command "
-  cd ~/web/${wp_openDir}/$1;
-  ~/bin/wp db drop --yes;
-  cd ../;
-  rm -r /$1;
+  cd ~/web/${wp_openDir}/;
+  rm -rf $1;
   "
 }
 
