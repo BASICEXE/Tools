@@ -50,7 +50,7 @@ ls_dir(){
   ${1:-$wp_secretDir}ディレクトリ
   ----------------------------
   "
-  ssh $server command "cd ${1:-$wp_secretDir};ls"
+  ssh $server command "cd ~/web/${1:-$wp_secretDir};ls"
   echo "
   ----------------------------
   "
@@ -98,7 +98,7 @@ rm_site(){
 repository_setup(){
   # サーバーにRepositoryを追加
   ssh $server command "
-  cd ~/${wp_secretDir};
+  cd ~/web/${wp_secretDir};
   mkdir ${1};
   cd ${1};
   git init --bare --shared;"
