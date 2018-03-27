@@ -74,6 +74,12 @@ install(){
   ~/bin/wp plugin install all-in-one-wp-migration;
   ~/bin/wp plugin activate all-in-one-wp-migration
   "
+  echo "
+  追加されました。
+  ----------------------------
+  ${wp_user}/${1}/
+  ----------------------------
+  "
 }
 
 remove(){
