@@ -1,0 +1,110 @@
+#!/bin/sh
+
+
+# 設定ファイルをこのように設定してください
+#
+# 接続先のサーバー情報
+# SERVER=hoge
+# openDir=hoge
+
+SERVER=tap
+openDir=web/test_site/site/
+
+
+if [ -r ./.web_config ]; then
+    source ./.web_config
+fi
+
+
+yn(){
+  read -p '実行しますか？ [y/n]' yn
+  case $yn in
+    [Yy] ) break;;
+    * ) echo "実行をキャンセルしました。"; exit ;;
+  esac
+}
+
+ls_dir(){
+  #サーバー側のディレクトリを見る
+  echo "
+  ${1:-$openDir}ディレクトリ
+  ----------------------------
+  "
+  ssh $SERVER command "cd ${1:-$openDir};ls"
+  echo "
+  ----------------------------
+  "
+}
+
+init(){
+cat <<EOF > .web_config
+SERVER=${1}
+dir=${2}
+copyDir=${3}
+EOF
+}
+
+up(){
+  rsync -truvpz ./${copyDir}/ $SERVER:~/${openDir}/${dir}
+  echo "変更を反映しました。"
+  echo "http://test.timeair.jp/${dir}/"
+}
+
+remove(){
+  ssh $SERVER command "
+  cd ~/${openDir};
+  rm -rf $1;
+  "
+  echo "${1}を削除しました。"
+}
+
+help(){
+  echo "
+  htmlのテストサイトを自動公開するシェルスクリプトです。
+  引数として[]内の文字を入力してください。
+
+  ［メニュー］
+
+  設定         : [init]
+  アップロード  : [up]
+  削除         : [remove]
+  "
+  ls_dir
+}
+
+#==================================
+# 判定・処理
+#==================================
+case "$1" in
+  "init")
+    if [ ! -r ./.web_config ]; then
+        ls_dir
+        read -p "公開先のディレクトリ名 : " dir
+        read -p "接続サーバー名        : " server
+        read -p "公開するディレクトリ   : " copyDir
+        yn
+        init ${server} ${dir} ${copyDir}
+        echo "設定完了"
+    else
+        echo "エラー！　ファイルが存在します。"
+    fi
+    ;;
+  "up")
+    if [ -r ./.web_config ]; then
+        echo "upしますか？"
+        yn
+        up
+    else
+        echo "エラー！　ファイルが存在しません"
+    fi
+    ;;
+  "remove")
+    ls_dir
+    read -p "削除する確認用サイトを入力してください : " dir
+    echo "${dir}のsiteを削除しますか？"
+    yn
+    remove ${dir}
+    ;;
+  *)
+    help
+esac
