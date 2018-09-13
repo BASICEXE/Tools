@@ -48,8 +48,9 @@ EOF
 # アップロードを実行
 up(){
   rsync -truvpz\
-   --exclude='.git/*'\
-   --exclude='node_modules/*'\
+   --exclude='.git'\
+   --exclude='.cache'\
+   --exclude='node_modules'\
   ./${copyDir}/ $SERVER:~/${openDir}/${dir}
   echo "変更を反映しました。"
   echo "${URL}/site/${dir}/"
