@@ -7,7 +7,8 @@
 # SERVER=hoge
 # openDir=hoge
 
-openDir=web/test_site/site/
+SERVER=lolipop
+openDir=web/test_site/site
 
 # 設定ファイルの読み込み
 if [ -r ./.web_config ]; then
@@ -25,8 +26,8 @@ yn(){
 
 # サーバー側のディレクトリを見る
 ls_dir(){
-  echo "${1:-$openDir}ディレクトリ
-  ----------------------------"
+  echo "${1:-$openDir}ディレクトリ"
+  echo "----------------------------"
   ssh $SERVER command "cd ${1:-$openDir};ls"
   echo "----------------------------"
 }
@@ -44,13 +45,12 @@ EOF
 up(){
   rsync -truvpz ./${copyDir}/ $SERVER:~/${openDir}/${dir}
   echo "変更を反映しました。"
-  echo "http://test.7code.work/${dir}/"
+  echo "https://test.7code.work/site/${dir}/"
 }
 
 # 削除を実行
 remove(){
   ssh $SERVER command "cd ~/${openDir};rm -rf $1;"
-  echo "${1}を削除しました。"
 }
 
 # 使い方の説明

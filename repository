@@ -25,7 +25,6 @@
 #==================================
 
 temp(){
-
   #一時的なフォルダを作成する
   temp_file=$(mktemp)
   temp_dir=$(mktemp -d)
@@ -33,21 +32,14 @@ temp(){
   rm $temp_file
   rm -rf $temp_dir
   " 0
-
 }
 
+#サーバー側のディレクトリを見る
 ls_dir(){
-
-  #サーバー側のディレクトリを見る
-  echo "
-  ${1:-$secretDir}ディレクトリ
-  ----------------------------
-  "
+  echo "${1:-$secretDir}ディレクトリ"
+  echo "----------------------------"
   ssh $server command "cd ${1:-$secretDir};ls"
-  echo "
-  ----------------------------
-  "
-
+  echo "----------------------------"
 }
 
 gitcall () {
@@ -57,22 +49,19 @@ gitcall () {
   rm -rf .git
 }
 
-
+# サーバーにあるRepositoryを削除
 rm_site(){
-
-  # サーバーにあるRepositoryを削除
   ssh $server command "
   cd ~/web/${openDir}/;
   rm -rf $1;
   cd ~/${secretDir}/;
   rm -rf $1"
   echo "${1}を削除しました。"
-
 }
 
-repository_setup(){
 
-  # サーバーにRepositoryを追加
+# サーバーにRepositoryを追加
+repository_setup(){
   ssh $server command "
   cd ~/${secretDir};
   mkdir ${1};
@@ -103,12 +92,11 @@ EOF"
 
 }
 
-repository_add(){
 
-  # リモートリポジトリtestを追加
+# リモートリポジトリtestを追加
+repository_add(){
   git remote add test ssh://${server}/~/${secretDir}/$1
   echo "リポジトリをtestとして追加しました。"
-
 }
 
 
@@ -124,7 +112,6 @@ help(){
   テンプレートを呼び出します。　　　　　　　　　  : call
   テンプレートを呼び出してリモートに公開します。  : setup
   リモートを削除します。　　　　　　　　　        : all
-
   "
 }
 

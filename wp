@@ -2,18 +2,18 @@
 
 
 # 設定ファイルをこのように設定してください
-# 
+#
 # 接続先のサーバー情報
 # server=hoge
-# 
+#
 # テンプレートを置いておくディレクトリ
 # wp_openDir=hoge
-# 
+#
 # db_host=hoge
 # db_name=hoge
 # db_user=hoge
 # db_pass=hoge
-# 
+#
 # wp_url=hoge
 # wp_title=hoge
 # wp_user=hoge
@@ -29,30 +29,25 @@
 # functions
 #==================================
 
+# 一時的なフォルダを作成する
 temp(){
-
-  #一時的なフォルダを作成する
   temp_file=$(mktemp)
   temp_dir=$(mktemp -d)
   trap "
   rm $temp_file
   rm -rf $temp_dir
   " 0
-
 }
 
+# サーバー側のディレクトリを見る
 ls_dir(){
-  #サーバー側のディレクトリを見る
-  echo "
-  ${1:-$wp_openDir}ディレクトリ
-  ----------------------------
-  "
+  echo "${1:-$wp_openDir}ディレクトリ"
+  echo "----------------------------"
   ssh $server command "cd ~/web/${1:-$wp_openDir};ls"
-  echo "
-  ----------------------------
-  "
+  echo "----------------------------"
 }
 
+# 実行の確認
 yn(){
   read -p '実行しますか？ [y/n]' yn
   case $yn in
@@ -74,20 +69,18 @@ install(){
   ~/bin/wp plugin install all-in-one-wp-migration;
   ~/bin/wp plugin activate all-in-one-wp-migration
   "
-  echo "
-  追加されました。
+  echo "追加されました。
   ----------------------------
-  ${wp_user}/${1}/
-  ----------------------------
-  "
+  ${wp_url}/${1}/
+  ----------------------------"
 }
 
+
+# 削除を実行
 remove(){
-  ssh $server command "
-  cd ~/web/${wp_openDir}/;
-  rm -rf $1;
-  "
+  ssh $server command "cd ~/web/${wp_openDir}/;rm -rf $1;"
 }
+
 
 update(){
   files=$(ssh lolipop command "ls ~/web/${wp_openDir}/")
@@ -104,10 +97,9 @@ update(){
   done
 }
 
+# wp cil をインストール
 wp_cil_install(){
-  ssh $server command "
-  mkdir bin;
-  "
+  ssh $server command "mkdir bin"
   temp
   cd $temp_dir
 
@@ -132,17 +124,15 @@ echo "wp cliをインストールしました。"
 
 help(){
   echo "
-  wordpressのテスト環境を自動化するシェルスクリプトです。
+  wpテスト環境作成を自動化するシェルスクリプトです。
   なにを行うか選択してください。
 
   ［メニュー］
+  wp-cliのインストール   　　　　　　　　　 : [wp-cli]
 
-  wp-cli    install    : wp-cli
-
-  wordpress install    : install
-  wordpress remove     : remove
-  wordpress all update : update
-
+  wordpressのインストール  　　　　　　　　 : [install]
+  wordpressの削除    　　　　　　　　　　　 : [remove]
+  wordpressテストサイトをすべてアップデート : [update]
   "
   ls_dir
 }
@@ -153,13 +143,13 @@ help(){
 case "$1" in
   "remove")
     ls_dir
-    read -p "Please delete site name : " template
+    read -p "削除するディレクトリを入力してください。 : " template
     echo "本当に${template}を削除しますか？"
     yn
     remove $template
     ;;
   "install")
-    read -p "Please install site : " template
+    read -p "インストールするディレクトリ名を入力してください : " template
     echo "wordpressを${template}としてセットアップしますか？"
     yn
     install ${template}
