@@ -7,8 +7,12 @@
 # SERVER=hoge
 # openDir=hoge
 
+# ここを書き換えてください
+URL=https://test.7code.work
 SERVER=lolipop
 openDir=web/test_site/site
+
+# 書き換えはここまで
 
 # 設定ファイルの読み込み
 if [ -r ./.web_config ]; then
@@ -48,7 +52,7 @@ up(){
    --exclude='node_modules/*'\
   ./${copyDir}/ $SERVER:~/${openDir}/${dir}
   echo "変更を反映しました。"
-  echo "https://test.7code.work/site/${dir}/"
+  echo "${URL}/site/${dir}/"
 }
 
 # 削除を実行
