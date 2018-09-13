@@ -1,0 +1,106 @@
+#!/bin/sh
+
+
+# 設定ファイルをこのように設定してください
+#
+# 接続先のサーバー情報
+# SERVER=hoge
+# openDir=hoge
+
+SERVER=lolipop
+openDir=web/test_site/site
+
+# 設定ファイルの読み込み
+if [ -r ./.web_config ]; then
+    . ./.web_config
+fi
+
+# 実行を確認
+yn(){
+  read -p '実行しますか？ [y/n]' yn
+  case $yn in
+    [Yy] ) break;;
+    * ) echo "実行をキャンセルしました。"; exit ;;
+  esac
+}
+
+# サーバー側のディレクトリを見る
+ls_dir(){
+  echo "${1:-$openDir}ディレクトリ"
+  echo "----------------------------"
+  ssh $SERVER command "cd ${1:-$openDir};ls"
+  echo "----------------------------"
+}
+
+# 設定ファイルを現在のディレクトリに追加
+init(){
+cat <<EOF > .web_config
+SERVER=${1}
+dir=${2}
+copyDir=${3}
+EOF
+}
+
+# アップロードを実行
+up(){
+  rsync -truvpz ./${copyDir}/ $SERVER:~/${openDir}/${dir}
+  echo "変更を反映しました。"
+  echo "https://test.7code.work/site/${dir}/"
+}
+
+# 削除を実行
+remove(){
+  ssh $SERVER command "cd ~/${openDir};rm -rf $1;"
+}
+
+# 使い方の説明
+help(){
+  echo "
+  アップロードするシェルスクリプトです。
+  引数として[]内の文字を入力してください。
+
+  ［メニュー］
+  設定ファイルを作成    : [init]
+  アップロード  　　　　: [up]
+  削除          　　　　: [remove]
+  "
+  ls_dir
+}
+
+#==================================
+# 判定・処理
+#==================================
+case "$1" in
+  "init")
+    if [ ! -r ./.web_config ]; then
+        ls_dir
+        read -p "公開先のディレクトリ名 : " dir
+        read -p "接続サーバー名（ssh）  : " server
+        read -p "公開するディレクトリ   : " copyDir
+        yn
+        init ${server} ${dir} ${copyDir}
+        echo "設定完了！"
+    else
+        echo "エラー！　設定ファイルが存在します。"
+    fi
+    ;;
+  "up")
+    if [ -r ./.web_config ]; then
+        echo "upしますか？"
+        yn
+        up
+    else
+        echo "エラー！　設定ファイルが存在しません"
+    fi
+    ;;
+  "remove")
+    ls_dir
+    read -p "削除する確認用サイトを入力してください : " dir
+    echo "${dir}のsiteを削除しますか？"
+    yn
+    remove ${dir}
+    echo "${dir}を削除しました。"
+    ;;
+  *)
+    help
+esac
