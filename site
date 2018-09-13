@@ -43,7 +43,10 @@ EOF
 
 # アップロードを実行
 up(){
-  rsync -truvpz ./${copyDir}/ $SERVER:~/${openDir}/${dir}
+  rsync -truvpz\
+   --exclude='.git/*'\
+   --exclude='node_modules/*'\
+  ./${copyDir}/ $SERVER:~/${openDir}/${dir}
   echo "変更を反映しました。"
   echo "https://test.7code.work/site/${dir}/"
 }
